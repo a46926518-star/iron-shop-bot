@@ -1,16 +1,10 @@
-
-from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, permissions, viewsets
-from .models import Category, Product, Order, CartItem
+from .models import Category, Product, Order, CartItem, Profile
 from .serializers import (
     CategorySerializer, ProductSerializer, OrderSerializer,
-    CartItemSerializer, RegisterSerializer
+    CartItemSerializer, RegisterSerializer, UserSerializer
 )
-# Create your views here.
-class ProductListView(generics.ListAPIView):
-    queryset = Product.objects.all().order_by('-id')
-    serializer_class = ProductSerializer
-    permission_classes = [permissions.AllowAny]
+
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all().order_by('-id')
     serializer_class = ProductSerializer
@@ -22,10 +16,6 @@ class ProductViewSet(viewsets.ModelViewSet):
             permission_classes = [permissions.IsAdminUser]
         return [permission() for permission in permission_classes]
 
-class OrderListView(generics.ListAPIView):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
-
 class CategoryListView(generics.ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -34,6 +24,13 @@ class CategoryListView(generics.ListAPIView):
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+
+class ProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
 
 class CartListView(generics.ListCreateAPIView):
     serializer_class = CartItemSerializer
@@ -44,3 +41,7 @@ class CartListView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class OrderListView(generics.ListAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
