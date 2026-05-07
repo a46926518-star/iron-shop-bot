@@ -36,14 +36,38 @@ async def get_orders(telegram_id):
             logging.error(f"Buyurtma xatosi: {e}")
             return []
 
+
 async def get_products_by_category(cat_id):
+
+
     async with aiohttp.ClientSession() as session:
         try:
+            async with session.get(f"{BASE_URL}mahsulotlar/", timeout=10) as response:
+                if response.status != 200:
+                    logging.error(f"API xatosi: Status {response.status}")
+                    return []
 
-            async with session.get(f"{BASE_URL}mahsulotlar/?category={cat_id}") as response:
-                if response.status == 200:
-                    return await response.json()
-                return []
+                all_products = await response.json()
+
+                filtered_products = []
+                for product in all_products:
+
+                    category_data = product.get('kategoriya') or product.get('category')
+
+                    if category_data is None:
+                        continue
+
+                    if isinstance(category_data, dict):
+                        prod_cat_id = category_data.get('id')
+                    else:
+                        prod_cat_id = category_data
+
+                    if str(prod_cat_id) == str(cat_id):
+                        filtered_products.append(product)
+
+                logging.info(f"Kategoriya {cat_id} bo'yicha {len(filtered_products)} ta mahsulot topildi.")
+                return filtered_products
+
         except Exception as e:
-            logging.error(f"Mahsulot xatosi: {e}")
+            logging.error(f"Mahsulotlarni olishda jiddiy xato: {e}")
             return []
