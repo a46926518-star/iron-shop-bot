@@ -16,7 +16,7 @@ async def get_categories():
 async def get_profile(telegram_id):
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(f"{BASE_URL}profiles/{telegram_id}/") as response:
+            async with session.get(f"{BASE_URL}profile/{telegram_id}/") as response:
                 if response.status == 200:
                     return await response.json()
                 return None
@@ -24,11 +24,10 @@ async def get_profile(telegram_id):
             logging.error(f"Profil xatosi: {e}")
             return None
 
-
 async def get_orders(telegram_id):
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(f"{BASE_URL}buyurtmalar/{telegram_id}/") as response:
+            async with session.get(f"{BASE_URL}orders/{telegram_id}/") as response:
                 if response.status == 200:
                     return await response.json()
                 return []
@@ -36,38 +35,18 @@ async def get_orders(telegram_id):
             logging.error(f"Buyurtma xatosi: {e}")
             return []
 
-
 async def get_products_by_category(cat_id):
-
-
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(f"{BASE_URL}mahsulotlar/", timeout=10) as response:
-                if response.status != 200:
-                    logging.error(f"API xatosi: Status {response.status}")
-                    return []
-
-                all_products = await response.json()
-
-                filtered_products = []
-                for product in all_products:
-
-                    category_data = product.get('kategoriya') or product.get('category')
-
-                    if category_data is None:
-                        continue
-
-                    if isinstance(category_data, dict):
-                        prod_cat_id = category_data.get('id')
-                    else:
-                        prod_cat_id = category_data
-
-                    if str(prod_cat_id) == str(cat_id):
-                        filtered_products.append(product)
-
-                logging.info(f"Kategoriya {cat_id} bo'yicha {len(filtered_products)} ta mahsulot topildi.")
-                return filtered_products
-
+            async with session.get(f"{BASE_URL}products/") as response:
+                if response.status == 200:
+                    all_products = await response.json()
+                    filtered_products = [
+                        p for p in all_products
+                        if str(p.get('category')) == str(cat_id)
+                    ]
+                    return filtered_products
+                return []
         except Exception as e:
-            logging.error(f"Mahsulotlarni olishda jiddiy xato: {e}")
+            logging.error(f"Mahsulot xatosi: {e}")
             return []
