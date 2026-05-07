@@ -1,7 +1,7 @@
 import logging
 import asyncio
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command  # BU KERAK
+from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -11,28 +11,34 @@ import api_service as api
 import keyboards as kb
 from config import BOT_TOKEN, DJANGO_HOST
 
+
+# 1. Buyurtma berish bosqichlari (FSM)
 class OrderState(StatesGroup):
     waiting_for_name = State()
     waiting_for_phone = State()
 
+
 logging.basicConfig(level=logging.INFO)
 
-# 2. Bot va Dispatcher
+# 2. Bot va Dispatcher sozlamalari
 bot = Bot(
     token=BOT_TOKEN,
     default=DefaultBotProperties(parse_mode="HTML")
 )
 dp = Dispatcher(storage=MemoryStorage())
 
+
+# --- 3. START KOMANDASI ---
 @dp.message(Command("start"))
 async def start_command(message: types.Message):
     await message.answer(
         f"Assalomu alaykum, {message.from_user.full_name}!\n"
         "Darvoza Botga xush kelibsiz. Kategoriyalardan birini tanlang:",
-        reply_markup=kb.categories_kb() # Katalog tugmalari
+        reply_markup=kb.categories_kb()
     )
 
 
+# --- 4. KATEGORIYA TANLANGANDA MAHSULOTLARNI CHIQARISH ---
 @dp.callback_query(F.data.startswith("category_"))
 async def show_products(callback: types.CallbackQuery):
     cat_id = callback.data.split("_")[1]
@@ -44,44 +50,63 @@ async def show_products(callback: types.CallbackQuery):
         for p in products:
             caption = f"🏷 <b>{p['name']}</b>\n💰 Narxi: {p['price']} $\n\n{p.get('description', '')}"
             img = p.get('image')
+
             if img and not img.startswith('http'):
                 img = f"{DJANGO_HOST.rstrip('/')}{img}"
 
             markup = kb.buy_product_kb(p['id'])
+
             try:
                 if img:
                     await callback.message.answer_photo(photo=img, caption=caption, reply_markup=markup)
                 else:
                     await callback.message.answer(caption, reply_markup=markup)
             except Exception as e:
-                logging.error(f"Rasmda xato: {e}")
+                logging.error(f"Rasm yuborishda xato: {e}")
                 await callback.message.answer(caption, reply_markup=markup)
+
     await callback.answer()
 
+
+# --- 5. "SOTIB OLISH" TUGMASI BOSILGANDA ---
 @dp.callback_query(F.data.startswith("buy_"))
 async def start_order(callback: types.CallbackQuery, state: FSMContext):
     product_id = callback.data.split("_")[1]
     await state.update_data(selected_product_id=product_id)
-    await callback.answer()
-    await callback.message.answer("📝 Ismingizni kiriting:")
+
+    await callback.answer("Buyurtma boshlandi")
+    await callback.message.answer("📝 Buyurtmani rasmiylashtirish uchun to'liq ismingizni kiriting:")
     await state.set_state(OrderState.waiting_for_name)
 
+
+# --- 6. ISM KIRITILGANDA ---
 @dp.message(OrderState.waiting_for_name)
 async def get_name(message: types.Message, state: FSMContext):
     await state.update_data(user_name=message.text)
-    await message.answer(f"Rahmat! Endi telefon raqamingizni yuboring:", reply_markup=kb.contact_markup())
+    await message.answer(f"Rahmat, {message.text}! Endi telefon raqamingizni yuboring:",
+                         reply_markup=kb.contact_markup())
     await state.set_state(OrderState.waiting_for_phone)
 
+
+# --- 7. TELEFON RAQAM KIRITILGANDA ---
 @dp.message(OrderState.waiting_for_phone)
 @dp.message(F.contact)
 async def get_phone(message: types.Message, state: FSMContext):
     phone = message.contact.phone_number if message.contact else message.text
-    await message.answer(f"✅ Rahmat! Buyurtmangiz qabul qilindi.", reply_markup=types.ReplyKeyboardRemove())
+    await message.answer(f"✅ Rahmat! Buyurtmangiz qabul qilindi.\n"
+                         f"Tez orada mutaxassislarimiz siz bilan bog'lanishadi.",
+                         reply_markup=types.ReplyKeyboardRemove())
     await state.clear()
 
+
 async def main():
-    logging.info("🚀 Bot ishlamoqda...")
+    logging.info("🚀 Bot polling rejimida ishlamoqda...")
     await dp.start_polling(bot)
 
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Bot to'xtatildi")
+
