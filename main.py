@@ -89,3 +89,15 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logging.info("Bot to'xtatildi")
+
+
+from aiogram.filters import Command
+
+@dp.message(Command("start"))
+async def start_command(message: types.Message):
+
+    await message.answer(
+        f"Assalomu alaykum, {message.from_user.full_name}!\n"
+        "Iron Shop darvozalar botiga xush kelibsiz.",
+        reply_markup=kb.categories_kb()
+    )
