@@ -1,12 +1,8 @@
 import os
 from dotenv import load_dotenv
-
 load_dotenv()
-
-TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = os.getenv("ADMIN_ID")
-BASE_URL = os.getenv("BASE_URL")
-DJANGO_HOST = os.getenv("DJANGO_HOST")
-
-if BASE_URL and not BASE_URL.endswith('/'):
-    BASE_URL += '/'
+BOT_TOKEN = "8701385504:AAGOwa8TXJo5DAUZuZbWKV07jdBKvIgQbeA"
+ADMIN_ID = "8549599284"
+DJANGO_HOST = "https://iron-shop.onrender.com/"
+BASE_URL = f"{DJANGO_HOST}api/"
+MEDIA_URL = f"{DJANGO_HOST}media/"
