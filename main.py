@@ -96,7 +96,7 @@ async def contact_admin(message: types.Message):
     contact_text = (
         "📞 <b>Biz bilan bog'lanish:</b>\n\n"
         "📱 Telefon: +998 90 857 18 11\n"
-        "👨‍💻 Admin: @darvozaadmin\n"
+        "👨‍💻 Admin: @yosh_adminn\n"
         "📍 Manzil: Farg'ona viloyati"
     )
     await message.answer(contact_text)
@@ -127,10 +127,8 @@ async def show_products(callback: types.CallbackQuery):
     await callback.answer()
 
 
-# --- ASOSIY ISHGA TUSHIRISH ---
 
 async def main():
-    # Web serverni orqa fonda ishga tushirish
     asyncio.create_task(start_web_server())
     logging.info("🚀 Bot polling rejimida ishlamoqda...")
     await dp.start_polling(bot)
