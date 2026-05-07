@@ -12,7 +12,6 @@ import keyboards as kb
 from config import BOT_TOKEN, DJANGO_HOST
 
 
-# 1. Buyurtma berish bosqichlari (FSM)
 class OrderState(StatesGroup):
     waiting_for_name = State()
     waiting_for_phone = State()
@@ -20,7 +19,6 @@ class OrderState(StatesGroup):
 
 logging.basicConfig(level=logging.INFO)
 
-# 2. Bot va Dispatcher sozlamalari
 bot = Bot(
     token=BOT_TOKEN,
     default=DefaultBotProperties(parse_mode="HTML")
@@ -28,17 +26,18 @@ bot = Bot(
 dp = Dispatcher(storage=MemoryStorage())
 
 
-# --- 3. START KOMANDASI ---
 @dp.message(Command("start"))
 async def start_command(message: types.Message):
+    # Bu yerda kategoriyalarni api orqali olishingiz kerak bo'ladi
+    import api_service as api
+    categories = await api.get_categories()
+
     await message.answer(
-        f"Assalomu alaykum, {message.from_user.full_name}!\n"
-        "Darvoza Botga xush kelibsiz. Kategoriyalardan birini tanlang:",
-        reply_markup=kb.categories_kb()
+        f"Assalomu alaykum, {message.from_user.full_name}!",
+        reply_markup=kb.build_categories_kb(categories)
     )
 
 
-# --- 4. KATEGORIYA TANLANGANDA MAHSULOTLARNI CHIQARISH ---
 @dp.callback_query(F.data.startswith("category_"))
 async def show_products(callback: types.CallbackQuery):
     cat_id = callback.data.split("_")[1]
@@ -68,7 +67,6 @@ async def show_products(callback: types.CallbackQuery):
     await callback.answer()
 
 
-# --- 5. "SOTIB OLISH" TUGMASI BOSILGANDA ---
 @dp.callback_query(F.data.startswith("buy_"))
 async def start_order(callback: types.CallbackQuery, state: FSMContext):
     product_id = callback.data.split("_")[1]
@@ -78,8 +76,6 @@ async def start_order(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer("📝 Buyurtmani rasmiylashtirish uchun to'liq ismingizni kiriting:")
     await state.set_state(OrderState.waiting_for_name)
 
-
-# --- 6. ISM KIRITILGANDA ---
 @dp.message(OrderState.waiting_for_name)
 async def get_name(message: types.Message, state: FSMContext):
     await state.update_data(user_name=message.text)
@@ -88,7 +84,6 @@ async def get_name(message: types.Message, state: FSMContext):
     await state.set_state(OrderState.waiting_for_phone)
 
 
-# --- 7. TELEFON RAQAM KIRITILGANDA ---
 @dp.message(OrderState.waiting_for_phone)
 @dp.message(F.contact)
 async def get_phone(message: types.Message, state: FSMContext):

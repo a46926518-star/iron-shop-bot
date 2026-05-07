@@ -11,7 +11,7 @@ main_menu = ReplyKeyboardMarkup(
     input_field_placeholder="Menyudan birini tanlang..."
 )
 
-def build_categories_kb(categories):
+def categories_kb(categories=[]):
     builder = InlineKeyboardBuilder()
     for cat in categories:
         builder.button(text=f"📂 {cat['name']}", callback_data=f"category_{cat['id']}")
@@ -23,3 +23,11 @@ def buy_product_kb(product_id):
     builder.button(text="🛒 Sotib olish", callback_data=f"buy_{product_id}")
     builder.adjust(1)
     return builder.as_markup()
+
+def contact_markup():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📱 Telefon raqamni yuborish", request_contact=True)]
+        ],
+        resize_keyboard=True
+    )
