@@ -11,7 +11,6 @@ import keyboards as kb
 from api_service import api
 from config import BOT_TOKEN, DJANGO_HOST
 
-
 logging.basicConfig(level=logging.INFO)
 
 
@@ -19,9 +18,12 @@ class OrderState(StatesGroup):
     waiting_for_name = State()
     waiting_for_phone = State()
 
-bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
-dp = Dispatcher(storage=MemoryStorage())
 
+bot = Bot(
+    token=BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode="HTML")
+)
+dp = Dispatcher(storage=MemoryStorage())
 
 
 @dp.message(Command("start"))
@@ -33,7 +35,6 @@ async def cmd_start(message: types.Message):
         reply_markup=kb.categories_kb(categories)
     )
 
-    
     await message.answer("Menyu:", reply_markup=kb.main_menu)
 
 
@@ -68,10 +69,9 @@ async def show_products(callback: types.CallbackQuery):
 
     await callback.answer()
 
-
-@dp.callback_query(F.data.startswith("buy_"))
-async def start_order(callback: types.CallbackQuery, state: FSMContext):
-    p_id = callback.data.split("_")[1]
+    @dp.callback_query(F.data.startswith("category:"))
+    async def show_products(callback: types.CallbackQuery):
+        cat_id = callback.data.split(":")[1]
     await state.update_data(product_id=p_id)
 
     await callback.message.answer("📝 Ismingizni kiriting:")
@@ -86,27 +86,25 @@ async def get_name(message: types.Message, state: FSMContext):
                          reply_markup=kb.contact_markup())
     await state.set_state(OrderState.waiting_for_phone)
 
-
 @dp.message(OrderState.waiting_for_phone)
 async def process_phone(message: types.Message, state: FSMContext):
-    phone = message.contact.phone_number if message.contact else message.text
     data = await state.get_data()
 
+    phone = message.contact.phone_number if message.contact else message.text
+
+    order_data = {
+        "product_id": data["product_id"],
+        "name": data["name"],
+        "phone": phone,
+        "telegram_id": message.from_user.id
+    }
+
+    # 🔥 BACKENDGA YUBORISH (BU MUHIM)
+    await api.create_order(order_data)
+
     await message.answer(
-        f"✅ <b>Buyurtma qabul qilindi!</b>\n"
-        f"Tez orada bog'lanamiz.",
+        "✅ Buyurtmangiz qabul qilindi!\nTez orada operator bog‘lanadi.",
         reply_markup=kb.main_menu
     )
+
     await state.clear()
-
-
-async def run_bot():
-    logging.info("Bot ishga tushdi...")
-    await dp.start_polling(bot)
-
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(run_bot())
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("Bot to'xtatildi")

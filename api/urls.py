@@ -4,12 +4,15 @@ from . import views
 
 router = DefaultRouter()
 router.register(r'products', views.ProductViewSet, basename='product')
+router.register(r'cart', views.CartViewSet, basename='cart')
+router.register(r'orders', views.OrderViewSet, basename='order')
 
 urlpatterns = [
-    path('', include(router.urls)), # /api/products/ avtomatik hosil bo'ladi
-    path('kategoriyalar/', views.CategoryListView.as_view(), name='category-list'),
-    path('register/', views.RegisterView.as_view(), name='auth_register'),
-    path('profile/', views.ProfileView.as_view(), name='profile'),
-    path('cart/', views.CartListView.as_view(), name='cart-list'),
-    path('orders/', views.OrderListView.as_view(), name='order-list'),
+    path('', include(router.urls)),
+    path('categories/', views.CategoryListView.as_view()),
+    path('profile/', views.ProfileView.as_view()),
+    path('feedback/', views.FeedbackCreateView.as_view()),
+    path('auth/register/', views.RegisterView.as_view()),
+    path('auth/login/', views.LoginView.as_view()),
+    path('order/create/', views.CreateOrderView.as_view()),
 ]

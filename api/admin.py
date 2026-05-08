@@ -11,18 +11,33 @@ class CategoryAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'price', 'created_at')
     list_filter = ('category',)
-    search_fields = ('name',)
-
+    search_fields = ('name', 'description')
+    ordering = ('-created_at',)
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
 
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'full_name', 'status', 'total_amount', 'created_at')
-    list_filter = ('status', 'created_at')
-    inlines = [OrderItemInline]
+    list_display = (
+        'id',
+        'user',
+        'full_name',
+        'phone_number',
+        'status',
+        'total_amount',
+        'created_at'
+    )
 
+    list_filter = ('status', 'created_at')
+    search_fields = ('full_name', 'phone_number')
+    inlines = [OrderItemInline]
+    ordering = ('-created_at',)
 admin.site.register(Profile)
-admin.site.register(Feedback)
+@admin.register(Feedback)
+class FeedbackAdmin(admin.ModelAdmin):
+    list_display = ('user', 'subject', 'created_at')
+    search_fields = ('subject', 'message')
+    ordering = ('-created_at',)
 admin.site.register(CartItem)

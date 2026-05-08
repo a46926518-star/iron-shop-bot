@@ -1,6 +1,4 @@
 from django.db import models
-
-# Create your models here.
 from django.contrib.auth.models import User
 
 class Category(models.Model):
@@ -31,23 +29,29 @@ class Product(models.Model):
 class Order(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Kutilmoqda'),
-        ('confirmed', 'Tasdiqlangan'),
-        ('delivered', 'Yetkazilgan'),
-        ('cancelled', 'Bekor qilingan'),
+        ('confirmed', 'Tasdiqlandi'),
+        ('shipped', 'Jo‘natildi'),
+        ('delivered', 'Yetkazildi'),
+        ('cancelled', 'Bekor qilindi'),
     )
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', verbose_name="Mijoz")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Holati")
-    full_name = models.CharField(max_length=255, verbose_name="To'liq ism", null=True, blank=True)
-    phone_number = models.CharField(max_length=20, verbose_name="Telefon raqami", null=True, blank=True)
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Jami summa")
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    full_name = models.CharField(max_length=255, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         verbose_name = "Buyurtma"
         verbose_name_plural = "Buyurtmalar"
 
     def __str__(self):
-        return f"Buyurtma #{self.id}"
+        return f"Order #{self.id}"
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE, verbose_name="Buyurtma")
@@ -59,18 +63,23 @@ class OrderItem(models.Model):
         return f"{self.product.name} ({self.quantity} dona)"
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name="Foydalanuvchi")
-    telegram_id = models.BigIntegerField(unique=True, verbose_name="Telegram ID", null=True, blank=True)
-    phone_number = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefon raqami")
-    address = models.TextField(blank=True, null=True, verbose_name="Manzili")
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+    telegram_id = models.BigIntegerField(unique=True, null=True, blank=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+
+    address = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.user.username} profili"
+        return self.user.username
 
 class CartItem(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cart')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cart_items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        unique_together = ('user', 'product')
 
     def __str__(self):
         return f"{self.user.username} - {self.product.name}"
