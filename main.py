@@ -84,23 +84,18 @@ async def get_name(message: types.Message, state: FSMContext):
 
 
 @dp.message(OrderState.waiting_for_phone)
-@dp.message(F.contact)
-async def get_phone(message: types.Message, state: FSMContext):
-    phone = message.contact.phone_number if message.contact else message.text
-    await message.answer(f"✅ Rahmat! Buyurtmangiz qabul qilindi.\n"
-                         f"Tez orada mutaxassislarimiz siz bilan bog'lanishadi.",
-                         reply_markup=types.ReplyKeyboardRemove())
+async def process_phone(message: types.Message, state: FSMContext):
+    if message.contact:
+        phone = message.contact.phone_number
+    else:
+        phone = message.text
+
+
+
+    await message.answer(
+        "✅ **Rahmat! Buyurtmangiz qabul qilindi.**\n"
+        "Tez orada mutaxassislarimiz siz bilan bog'lanishadi.",
+        reply_markup=kb.main_menu
+    )
+
     await state.clear()
-
-
-async def main():
-    logging.info("🚀 Bot polling rejimida ishlamoqda...")
-    await dp.start_polling(bot)
-
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("Bot to'xtatildi")
-
