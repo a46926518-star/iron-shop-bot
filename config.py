@@ -6,7 +6,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv("8701385504:AAGATjB5tyQNdoifS-VaOJ8pNRb7DwFRRzg")
 
 if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN topilmadi! .env ni tekshir")
+    raise ValueError("BOT_TOKEN topilmadi! .env ni tekshirib ko'ring")
 
 ADMIN_ID = int(os.getenv("8549599284") or 0)
 
