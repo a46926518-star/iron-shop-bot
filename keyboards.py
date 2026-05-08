@@ -1,4 +1,4 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 main_menu = ReplyKeyboardMarkup(
@@ -11,7 +11,7 @@ main_menu = ReplyKeyboardMarkup(
     input_field_placeholder="Menyudan birini tanlang..."
 )
 
-def categories_kb(categories=[]):
+def categories_kb(categories):
     builder = InlineKeyboardBuilder()
     for cat in categories:
         builder.button(text=f"📂 {cat['name']}", callback_data=f"category_{cat['id']}")
@@ -29,5 +29,6 @@ def contact_markup():
         keyboard=[
             [KeyboardButton(text="📱 Telefon raqamni yuborish", request_contact=True)]
         ],
-        resize_keyboard=True
+        resize_keyboard=True,
+        one_time_keyboard=True
     )

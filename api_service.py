@@ -2,51 +2,37 @@ import aiohttp
 import logging
 from config import BASE_URL
 
-async def get_categories():
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(f"{BASE_URL}kategoriyalar/") as response:
-                if response.status == 200:
-                    return await response.json()
-                return []
-        except Exception as e:
-            logging.error(f"Katalog xatosi: {e}")
-            return []
+class APIService:
+    def __init__(self):
+        self.base_url = BASE_URL
 
-async def get_profile(telegram_id):
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(f"{BASE_URL}profile/{telegram_id}/") as response:
-                if response.status == 200:
-                    return await response.json()
+    async def _get_request(self, endpoint):
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(f"{self.base_url}{endpoint}") as response:
+                    if response.status == 200:
+                        return await response.json()
+                    logging.error(f"API Error {response.status}: {endpoint}")
+                    return None
+            except Exception as e:
+                logging.error(f"Connection Error: {e}")
                 return None
-        except Exception as e:
-            logging.error(f"Profil xatosi: {e}")
-            return None
 
-async def get_orders(telegram_id):
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(f"{BASE_URL}orders/{telegram_id}/") as response:
-                if response.status == 200:
-                    return await response.json()
-                return []
-        except Exception as e:
-            logging.error(f"Buyurtma xatosi: {e}")
-            return []
+    async def get_categories(self):
+        result = await self._get_request("kategoriyalar/")
+        return result if result else []
 
-async def get_products_by_category(cat_id):
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(f"{BASE_URL}products/") as response:
-                if response.status == 200:
-                    all_products = await response.json()
-                    filtered_products = [
-                        p for p in all_products
-                        if str(p.get('category')) == str(cat_id)
-                    ]
-                    return filtered_products
-                return []
-        except Exception as e:
-            logging.error(f"Mahsulot xatosi: {e}")
-            return []
+    async def get_products_by_category(self, cat_id):
+        all_products = await self._get_request("products/")
+        if all_products:
+            return [p for p in all_products if str(p.get('category')) == str(cat_id)]
+        return []
+
+    async def get_profile(self, telegram_id):
+        return await self._get_request(f"profile/{telegram_id}/")
+
+    async def get_orders(self, telegram_id):
+        result = await self._get_request(f"orders/{telegram_id}/")
+        return result if result else []
+
+api = APIService()
