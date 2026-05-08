@@ -1,59 +1,48 @@
 import asyncio
 import aiohttp
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.types import Message
+import os
+from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+from dotenv import load_dotenv
 
-TOKEN = "8701385504:AAE4qIhBWy82KHdqHnpJq0z3vcbzpFHM-Fo"
-API_URL = "https://xxxx.ngrok.io/api/"
+
+def setup_bot():
+    dp.include_router(router)
+
+load_dotenv()
+
+TOKEN = os.getenv("8701385504:AAGATjB5tyQNdoifS-VaOJ8pNRb7DwFRRzg")
+API_URL = os.getenv("DJANGO_HOST") + "/api"
+
+if not TOKEN:
+    raise ValueError("BOT_TOKEN topilmadi!")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 
 @dp.message(Command("start"))
-async def start(msg: Message):
-    await msg.answer("Salom 👋\nMahsulotlarni ko‘rish uchun /products yozing")
+async def start(msg: types.Message):
+    await msg.answer("Salom 👋 Production bot ishlayapti!")
 
 
 @dp.message(Command("products"))
-async def products(msg: Message):
+async def products(msg: types.Message):
     async with aiohttp.ClientSession() as session:
-        async with session.get(API_URL + "products/") as resp:
+        async with session.get(API_URL + "/products/") as resp:
             data = await resp.json()
 
-            text = "🛒 Mahsulotlar:\n\n"
-            for p in data:
-                text += f"📦 {p['name']} - {p['price']} so'm\n"
+    text = "🛒 Mahsulotlar:\n\n"
+    for p in data:
+        text += f"📦 {p['name']} - {p['price']}\n"
 
-            await msg.answer(text)
+    await msg.answer(text)
 
-@dp.message(Command("order"))
-async def order(msg: Message):
-    try:
-        parts = msg.text.split()
 
-        if len(parts) < 2:
-            await msg.answer("❗ Misol: /order 1 2 3")
-            return
+async def main():
+    print("BOT START 🚀")
+    await dp.start_polling(bot)
 
-        product_ids = list(map(int, parts[1:]))
 
-        data = {
-            "product_ids": product_ids,
-            "full_name": msg.from_user.full_name,
-            "phone_number": "unknown"
-        }
-
-        async with aiohttp.ClientSession() as session:
-            async with session.post(API_URL + "order/create/", json=data) as resp:
-                result = await resp.json()
-
-        await msg.answer(
-            f"✅ Buyurtma yaratildi!\n"
-            f"🆔 ID: {result['order_id']}\n"
-            f"💰 Summa: {result['total']}"
-        )
-
-    except Exception as e:
-        await msg.answer(f"❌ Xatolik: {str(e)}")
+if __name__ == "__main__":
+    asyncio.run(main())

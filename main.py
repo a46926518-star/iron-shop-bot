@@ -1,17 +1,25 @@
-import logging
+import os
 import asyncio
+import logging
+import sys
+from aiohttp import web
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.client.default import DefaultBotProperties
-from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import Command
 
 import keyboards as kb
-from api_service import api
-from config import BOT_TOKEN, DJANGO_HOST
+from api_service import APIService
+from config import BOT_TOKEN, DJANGO_HOST, ADMIN_ID
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
 
 
 class OrderState(StatesGroup):
@@ -19,61 +27,73 @@ class OrderState(StatesGroup):
     waiting_for_phone = State()
 
 
-bot = Bot(
-    token=BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode="HTML")
-)
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher(storage=MemoryStorage())
+api = APIService()
+
+
+async def handle(request):
+    return web.Response(text="Bot is running!", status=200)
+
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    # Render avtomatik PORT beradi, bo'lmasa 4000 ishlatiladi
+    port = int(os.getenv("PORT", 4000))
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    logger.info(f"🌐 Web server {port}-portda ishga tushdi")
+    await site.start()
+
 
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    categories = await api.get_categories()
-    await message.answer(
-        f"Assalomu alaykum, <b>{message.from_user.full_name}</b>!\n"
-        "Iron Shop botiga xush kelibsiz. Kategoriyani tanlang:",
-        reply_markup=kb.categories_kb(categories)
-    )
-
-    await message.answer("Menyu:", reply_markup=kb.main_menu)
-
-
-@dp.message(F.text == "🚪 Katalog")
-async def show_katalog(message: types.Message):
-    categories = await api.get_categories()
-    await message.answer("Kategoriyani tanlang:", reply_markup=kb.categories_kb(categories))
+    try:
+        categories = await api.get_categories()
+        await message.answer(
+            f"👋 Salom, <b>{message.from_user.full_name}</b>!\n"
+            "🛍 Kategoriyani tanlang:",
+            reply_markup=kb.categories_kb(categories)
+        )
+    except Exception as e:
+        logger.error(f"START ERROR: {e}")
+        await message.answer("❌ Xatolik yuz berdi")
 
 
 @dp.callback_query(F.data.startswith("category_"))
 async def show_products(callback: types.CallbackQuery):
-    cat_id = callback.data.split("_")[1]
-    products = await api.get_products_by_category(cat_id)
+    try:
+        cat_id = callback.data.split("_")[1]
+        products = await api.get_products_by_category(cat_id)
 
-    if not products:
-        await callback.answer("❌ Mahsulotlar yo'q", show_alert=True)
-        return
+        if not products:
+            await callback.answer("Mahsulot yo‘q ❌", show_alert=True)
+            return
 
-    for p in products:
-        caption = f"<b>{p['name']}</b>\n\n💰 Narxi: {p['price']} $\n📝 {p.get('description', '')}"
-        img = p.get('image')
+        for p in products:
+            caption = f"<b>{p.get('name')}</b>\n💰 {p.get('price')} $"
+            img = p.get("image")
+            if img and not img.startswith("http"):
+                img = f"{DJANGO_HOST}{img}"
 
-        if img and not img.startswith('http'):
-            img = f"{DJANGO_HOST}{img}"
+            markup = kb.buy_product_kb(p["id"])
+            if img:
+                await callback.message.answer_photo(img, caption=caption, reply_markup=markup)
+            else:
+                await callback.message.answer(caption, reply_markup=markup)
+        await callback.answer()
+    except Exception as e:
+        logger.error(f"PRODUCT ERROR: {e}")
+        await callback.answer("Xatolik ❌", show_alert=True)
 
-        markup = kb.buy_product_kb(p['id'])
 
-        if img:
-            await callback.message.answer_photo(photo=img, caption=caption, reply_markup=markup)
-        else:
-            await callback.message.answer(caption, reply_markup=markup)
-
-    await callback.answer()
-
-    @dp.callback_query(F.data.startswith("category:"))
-    async def show_products(callback: types.CallbackQuery):
-        cat_id = callback.data.split(":")[1]
-    await state.update_data(product_id=p_id)
-
+@dp.callback_query(F.data.startswith("buy_"))
+async def start_order(callback: types.CallbackQuery, state: FSMContext):
+    product_id = callback.data.split("_")[1]
+    await state.update_data(product_id=product_id)
     await callback.message.answer("📝 Ismingizni kiriting:")
     await state.set_state(OrderState.waiting_for_name)
     await callback.answer()
@@ -82,29 +102,76 @@ async def show_products(callback: types.CallbackQuery):
 @dp.message(OrderState.waiting_for_name)
 async def get_name(message: types.Message, state: FSMContext):
     await state.update_data(name=message.text)
-    await message.answer(f"Rahmat, {message.text}! Endi raqamingizni yuboring:",
-                         reply_markup=kb.contact_markup())
+    await message.answer("📞 Telefon raqamingizni yuboring:", reply_markup=kb.contact_markup())
     await state.set_state(OrderState.waiting_for_phone)
+
 
 @dp.message(OrderState.waiting_for_phone)
 async def process_phone(message: types.Message, state: FSMContext):
-    data = await state.get_data()
+    try:
+        data = await state.get_data()
+        phone = message.contact.phone_number if message.contact else message.text
 
-    phone = message.contact.phone_number if message.contact else message.text
+        order_data = {
+            "product_id": data["product_id"],
+            "name": data["name"],
+            "phone": phone,
+            "telegram_id": message.from_user.id
+        }
 
-    order_data = {
-        "product_id": data["product_id"],
-        "name": data["name"],
-        "phone": phone,
-        "telegram_id": message.from_user.id
-    }
+        await api.create_order(order_data)
 
-    # 🔥 BACKENDGA YUBORISH (BU MUHIM)
-    await api.create_order(order_data)
+        await bot.send_message(
+            chat_id=ADMIN_ID,
+            text=f"🔔 <b>Yangi buyurtma!</b>\n\n👤 {data['name']}\n📞 {phone}\n📦 Product ID: {data['product_id']}"
+        )
 
-    await message.answer(
-        "✅ Buyurtmangiz qabul qilindi!\nTez orada operator bog‘lanadi.",
-        reply_markup=kb.main_menu
-    )
+        await message.answer("✅ Buyurtma qabul qilindi!", reply_markup=kb.main_menu)
+        await state.clear()
+    except Exception as e:
+        logger.error(f"ORDER ERROR: {e}")
+        await message.answer("❌ Buyurtma xatoligi yuz berdi")
 
-    await state.clear()
+
+@dp.message(F.text == "📂 Katalog")
+async def catalog(message: types.Message):
+    categories = await api.get_categories()
+    await message.answer("🛍 Kategoriya tanlang:", reply_markup=kb.categories_kb(categories))
+
+
+@dp.message(F.text == "👤 Profilim")
+async def profile(message: types.Message):
+    await message.answer(f"👤 Ism: {message.from_user.full_name}\n🆔 ID: {message.from_user.id}")
+
+
+@dp.message(F.text == "ℹ️ Ma'lumot")
+async def info(message: types.Message):
+    await message.answer("🏪 Iron Shop — sifatli mahsulotlar do‘koni")
+
+
+@dp.message(F.text == "📞 Bog'lanish")
+async def contact(message: types.Message):
+    await message.answer("📞 Admin: @yosh_admin")
+
+
+
+async def main():
+    await api.start()
+
+    asyncio.create_task(start_web_server())
+
+    await bot.delete_webhook(drop_pending_updates=True)
+    logger.info("🚀 Bot polling rejimida ishga tushdi")
+
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await api.close()
+        await bot.session.close()
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("🤖 Bot to'xtatildi")
