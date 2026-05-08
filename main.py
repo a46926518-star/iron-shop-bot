@@ -1,7 +1,6 @@
 import logging
 import asyncio
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -10,6 +9,7 @@ from aiogram.fsm.state import State, StatesGroup
 import api_service as api
 import keyboards as kb
 from config import BOT_TOKEN, DJANGO_HOST
+from aiogram.filters import Command
 
 
 class OrderState(StatesGroup):
@@ -28,13 +28,12 @@ dp = Dispatcher(storage=MemoryStorage())
 
 @dp.message(Command("start"))
 async def start_command(message: types.Message):
-    # Bu yerda kategoriyalarni api orqali olishingiz kerak bo'ladi
-    import api_service as api
     categories = await api.get_categories()
 
     await message.answer(
-        f"Assalomu alaykum, {message.from_user.full_name}!",
-        reply_markup=kb.build_categories_kb(categories)
+        f"Assalomu alaykum, {message.from_user.full_name}!\n"
+        "Kategoriyalardan birini tanlang:",
+        reply_markup=kb.categories_kb(categories)
     )
 
 
