@@ -3,12 +3,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("8701385504:AAGATjB5tyQNdoifS-VaOJ8pNRb7DwFRRzg")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN topilmadi! .env ni tekshirib ko'ring")
 
-ADMIN_ID = int(os.getenv("8549599284") or 0)
+ADMIN_ID = int(os.getenv("ADMIN_ID") or 0)
 
 DJANGO_HOST = (os.getenv("DJANGO_HOST") or "http://127.0.0.1:8001").rstrip("/")
 

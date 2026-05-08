@@ -21,33 +21,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 class OrderState(StatesGroup):
     waiting_for_name = State()
     waiting_for_phone = State()
-
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher(storage=MemoryStorage())
 api = APIService()
 
-
 async def handle(request):
     return web.Response(text="Bot is running!", status=200)
-
 
 async def start_web_server():
     app = web.Application()
     app.router.add_get("/", handle)
     runner = web.AppRunner(app)
     await runner.setup()
-    # Render avtomatik PORT beradi, bo'lmasa 4000 ishlatiladi
     port = int(os.getenv("PORT", 4000))
     site = web.TCPSite(runner, '0.0.0.0', port)
     logger.info(f"🌐 Web server {port}-portda ishga tushdi")
     await site.start()
-
-
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -61,7 +54,6 @@ async def cmd_start(message: types.Message):
     except Exception as e:
         logger.error(f"START ERROR: {e}")
         await message.answer("❌ Xatolik yuz berdi")
-
 
 @dp.callback_query(F.data.startswith("category_"))
 async def show_products(callback: types.CallbackQuery):
@@ -89,7 +81,6 @@ async def show_products(callback: types.CallbackQuery):
         logger.error(f"PRODUCT ERROR: {e}")
         await callback.answer("Xatolik ❌", show_alert=True)
 
-
 @dp.callback_query(F.data.startswith("buy_"))
 async def start_order(callback: types.CallbackQuery, state: FSMContext):
     product_id = callback.data.split("_")[1]
@@ -98,13 +89,11 @@ async def start_order(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(OrderState.waiting_for_name)
     await callback.answer()
 
-
 @dp.message(OrderState.waiting_for_name)
 async def get_name(message: types.Message, state: FSMContext):
     await state.update_data(name=message.text)
     await message.answer("📞 Telefon raqamingizni yuboring:", reply_markup=kb.contact_markup())
     await state.set_state(OrderState.waiting_for_phone)
-
 
 @dp.message(OrderState.waiting_for_phone)
 async def process_phone(message: types.Message, state: FSMContext):
@@ -132,43 +121,33 @@ async def process_phone(message: types.Message, state: FSMContext):
         logger.error(f"ORDER ERROR: {e}")
         await message.answer("❌ Buyurtma xatoligi yuz berdi")
 
-
 @dp.message(F.text == "📂 Katalog")
 async def catalog(message: types.Message):
     categories = await api.get_categories()
     await message.answer("🛍 Kategoriya tanlang:", reply_markup=kb.categories_kb(categories))
 
-
 @dp.message(F.text == "👤 Profilim")
 async def profile(message: types.Message):
     await message.answer(f"👤 Ism: {message.from_user.full_name}\n🆔 ID: {message.from_user.id}")
-
 
 @dp.message(F.text == "ℹ️ Ma'lumot")
 async def info(message: types.Message):
     await message.answer("🏪 Iron Shop — sifatli mahsulotlar do‘koni")
 
-
 @dp.message(F.text == "📞 Bog'lanish")
 async def contact(message: types.Message):
     await message.answer("📞 Admin: @yosh_admin")
 
-
-
 async def main():
     await api.start()
-
     asyncio.create_task(start_web_server())
-
     await bot.delete_webhook(drop_pending_updates=True)
     logger.info("🚀 Bot polling rejimida ishga tushdi")
-
     try:
         await dp.start_polling(bot)
     finally:
         await api.close()
         await bot.session.close()
-
 
 if __name__ == "__main__":
     try:
