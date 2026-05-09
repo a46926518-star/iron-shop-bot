@@ -42,13 +42,25 @@ async def start_web_server():
     logger.info(f"🌐 Web server {port}-portda ishga tushdi")
     await site.start()
 
+
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     try:
         categories = await api.get_categories()
-        await message.answer(
-            f"👋 Salom, <b>{message.from_user.full_name}</b>!\n"
-            "🛍 Kategoriyani tanlang:",
+
+        # Bu yerga do'koningizning chiroyli logotipi yoki rasmi linkini qo'ying
+        welcome_photo = "https://your-image-link.com/photo.jpg"
+
+        welcome_text = (
+            f"👋 Salom, <b>{message.from_user.full_name}</b>!\n\n"
+            f"🏢 <b>Iron Shop</b> do'konimizga xush kelibsiz.\n"
+            f"Biz bilan sifatli metall mahsulotlarini onlayn buyurtma qiling.\n\n"
+            f"🛍 <b>Kategoriyani tanlang:</b>"
+        )
+
+        await message.answer_photo(
+            photo=welcome_photo,
+            caption=welcome_text,
             reply_markup=kb.categories_kb(categories)
         )
     except Exception as e:
@@ -95,11 +107,13 @@ async def get_name(message: types.Message, state: FSMContext):
     await message.answer("📞 Telefon raqamingizni yuboring:", reply_markup=kb.contact_markup())
     await state.set_state(OrderState.waiting_for_phone)
 
+
 @dp.message(OrderState.waiting_for_phone)
 async def process_phone(message: types.Message, state: FSMContext):
     try:
         data = await state.get_data()
         phone = message.contact.phone_number if message.contact else message.text
+
 
         order_data = {
             "product_id": data["product_id"],
@@ -112,15 +126,23 @@ async def process_phone(message: types.Message, state: FSMContext):
 
         await bot.send_message(
             chat_id=ADMIN_ID,
-            text=f"🔔 <b>Yangi buyurtma!</b>\n\n👤 {data['name']}\n📞 {phone}\n📦 Product ID: {data['product_id']}"
+            text=f"🔔 <b>Yangi buyurtma!</b>\n\n👤 Ism: {data['name']}\n📞 Tel: {phone}\n📦 Product ID: {data['product_id']}"
         )
 
-        await message.answer("✅ Buyurtma qabul qilindi!", reply_markup=kb.main_menu)
+        confirmation_text = (
+            f"✅ <b>Sizning buyurtmangiz qabul qilindi!</b>\n\n"
+            f"👤 <b>Ism:</b> {data['name']}\n"
+            f"📞 <b>Telefon:</b> {phone}\n"
+            f"📦 <b>Mahsulot:</b> #{data['product_id']}\n\n"
+            f"⏳ Tez orada operatorimiz siz bilan bog'lanadi."
+        )
+
+        await message.answer(confirmation_text, reply_markup=kb.main_menu)
         await state.clear()
+
     except Exception as e:
         logger.error(f"ORDER ERROR: {e}")
         await message.answer("❌ Buyurtma xatoligi yuz berdi")
-
 @dp.message(F.text == "📂 Katalog")
 async def catalog(message: types.Message):
     categories = await api.get_categories()
