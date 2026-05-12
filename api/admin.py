@@ -39,3 +39,8 @@ class PaymentAdmin(admin.ModelAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "telegram_id", "phone")
+@admin.register(Master)
+class MasterAdmin(admin.ModelAdmin):
+    list_display = ('full_name', 'specialty', 'experience', 'is_active')
+    list_filter = ('specialty', 'is_active')
+    search_fields = ('full_name', 'specialty')

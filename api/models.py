@@ -39,7 +39,20 @@ class Feedback(models.Model):
         return self.subject
 
 
+class Master(models.Model):
+    full_name = models.CharField(max_length=255, verbose_name="Usta ismi")
+    specialty = models.CharField(max_length=255, verbose_name="Ixtisosligi (masalan: Payvandchi, Duradgor)")
+    phone_number = models.CharField(max_length=20, verbose_name="Telefon raqami")
+    experience = models.PositiveIntegerField(verbose_name="Tajribasi (yil)")
+    photo = models.ImageField(upload_to='masters/', verbose_name="Rasmi", null=True, blank=True)
+    is_active = models.BooleanField(default=True, verbose_name="Hozir ishlaydimi?")
 
+    def __str__(self):
+        return f"{self.full_name} - {self.specialty}"
+
+    class Meta:
+        verbose_name = "Usta"
+        verbose_name_plural = "Ustalar"
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
