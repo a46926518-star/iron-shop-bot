@@ -1,15 +1,19 @@
-import os
+
 import dj_database_url
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-o-zgartiring')
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-!vsk7d=9rtru7zdb')
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split('https://iron-shop-1.onrender.com/')
+ALLOWED_HOSTS = ['iron-shop-1.onrender.com', 'localhost', '127.0.0.1']
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://iron-shop-1.onrender.com',
+]
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
