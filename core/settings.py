@@ -130,5 +130,5 @@ LANGUAGE_CODE = "uz-uz"
 TIME_ZONE = "Asia/Tashkent"
 USE_I18N = True
 USE_TZ = True
-DEBUG=True
-
+if 'RENDER' in os.environ:
+    DEBUG = True
