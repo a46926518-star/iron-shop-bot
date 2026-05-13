@@ -1,6 +1,23 @@
-<h2>Tizimga kirish</h2>
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Kirish</button>
-</form>
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <title>Iron Shop - Bosh sahifa</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f4f4f9; }
+        .container { text-align: center; padding: 20px; background: white; border-radius: 10px; shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        a { text-decoration: none; color: #007bff; font-weight: bold; margin: 10px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Iron Shop API-ga xush kelibsiz! 🚀</h1>
+        <p>Loyiha muvaffaqiyatli serverga joylandi.</p>
+        <hr>
+        <a href="/api/docs/">Swagger API Docs</a>
+        <a href="/admin/">Admin Panel</a>
+        <a href="/kanban/">Kanban Board</a>
+    </div>
+</body>
+</html>
