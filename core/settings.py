@@ -12,11 +12,7 @@ def env_list(name, default=""):
 
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me")
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-
-ALLOWED_HOSTS = env_list(
-    "ALLOWED_HOSTS",
-    "iron-shop-1.onrender.com,localhost,127.0.0.1"
-)
+ALLOWED_HOSTS = ['iron-shop-1.onrender.com', 'localhost', '127.0.0.1']
 FRONTEND_URLS = env_list(
     "FRONTEND_URLS",
     "http://localhost:3000"
